@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <script src="./index.js" defer></script>
+    <title>Learn Web Audio API</title>
+</head>
+<body>
+    <h1>
+        Learn Web Audio API
+    </h1>
+    <hr>
+    <form>
+        <fieldset>
+            <legend>Input</legend>
+            <input id="audio_file" type="file" accept="audio/*" onchange="audioAccepted(this.files[0], this)" />
+            <audio id="audio_player" controls/>
+        </fieldset>
+    </form>
+    <div id="graphContainer" style="padding: 0;">
+        <canvas id="graphCanvas" style="margin: 0; padding: 0;">
+
+        </canvas>
+    </div>
+</body>
+</html>
