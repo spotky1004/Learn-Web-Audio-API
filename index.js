@@ -52,7 +52,7 @@ function drawGraph() {
     
 
     const channelToanAlyze = [...audioLoaded.getChannelData(0)];
-    const per = 1000;
+    const per = 5000;
     const perDt = audioData.duration/(channelToanAlyze.length/per)*1000;
     let skippedData = [];
     for (let i = 0, l = channelToanAlyze.length/per; i < l; i++) {
@@ -87,7 +87,7 @@ function drawGraph() {
         const [x, y] = [w*((i+1)/l), h*(1-peak)];
         if (beatDetectIdx.includes(i)) {
             c.fillStyle = "#0f0";
-            c.fillRect(x-3, y-3, 6, 6);
+            c.fillRect(x-2, y-2, 4, 4);
         }
         c.lineTo(x, y);
         c.stroke();
