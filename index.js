@@ -41,25 +41,25 @@ function audioAccepted(file) {
 let analyser = null;
 /** @type {Uint8Array} */
 let dataArray = null;
+/** @type {AudioBufferSourceNode} */
+let source = null;
 /**
  * @param {AudioContext} audioContext
  * @param {AudioBuffer} audioBuffer
  */
 async function analyzeAudio(audioContext, audioBuffer) {
   analyser = audioContext.createAnalyser();
-  console.log(analyser);
 
-
-  const source = audioContext.createBufferSource();
+  source = audioContext.createBufferSource();
   source.buffer = audioBuffer;
   source.connect(analyser);
   analyser.connect(audioContext.destination);
   source.start(0);
   
-  analyser.fftSize = 2048;
+  analyser.fftSize = 4096;
   const bufferLength = analyser.frequencyBinCount;
   dataArray = new Uint8Array(bufferLength);
-  analyser.getByteTimeDomainData(dataArray);
+  analyser.getByteFrequencyData(dataArray);
   
   draw();
 }
@@ -67,7 +67,7 @@ async function analyzeAudio(audioContext, audioBuffer) {
 /** @type {HTMLCanvasElement} */
 const canvas = document.getElementById("canvas");
 function draw() {
-  analyser.getByteTimeDomainData(dataArray);
+  analyser.getByteFrequencyData(dataArray);
 
   const WIDTH = canvas.width = innerWidth - 10;
   const HEIGHT = canvas.height = innerHeight / 5;
@@ -88,9 +88,8 @@ function draw() {
       dataArray[i] * HEIGHT/256
     );
   }
-  ctx.lineTo(0, HEIGHT/2);
+  ctx.lineTo(WIDTH, HEIGHT/2);
   ctx.stroke();
-  console.log(Math.min(...dataArray));
 
   requestAnimationFrame(draw);
 }
