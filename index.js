@@ -3,125 +3,94 @@
 /** @type {AudioBuffer} */
 let audioLoaded = null;
 let audioData = {
-    duration: null,
-    beatDetectTime: null,
-    beatDetectRespectively: null
+  duration: null,
+  beatDetectTime: null,
+  beatDetectRespectively: null
 };
+
 const audioPlayer = document.getElementById("audio_player");
 
-function audioAccepted(file, t) {
-    let reader1 = new FileReader();
-    let reader2 = new FileReader();
-    
-    reader1.addEventListener("load", function () {
-        // to data
-        const audioContext = new AudioContext()
-        audioContext.decodeAudioData(reader1.result, function(arrayBuffer) {
-            audioLoaded = arrayBuffer;
-            audioData.duration = arrayBuffer.duration;
-            drawGraph();
-        });
-    }, false);
+/**
+ * @param {File} file 
+ */
+function audioAccepted(file) {
+  const fileReader1 = new FileReader();
+  const fileReader2 = new FileReader();
 
-    reader2.addEventListener("load", function () {
-        // preview
-        audioPlayer.src = reader2.result;
-    }, false);
-
-    if (file) {
-        reader1.readAsArrayBuffer(file);
-        reader2.readAsDataURL(file);
-    }
+  const audioContext = new AudioContext();
+  
+  fileReader1.addEventListener("load", function () {
+    const audioContext = new AudioContext();
+    audioContext.decodeAudioData(fileReader1.result, (buffer) => {
+      audioData.duration = buffer.duration;
+      analyzeAudio(audioContext, buffer);
+    });
+  }, false);
+  
+  fileReader2.addEventListener("load", () => {
+    audioPlayer.src = fileReader2.result;
+  }, false);
+  
+  if (file) {
+    fileReader1.readAsArrayBuffer(file);
+    fileReader2.readAsDataURL(file);
+  }
 }
 
-const graphContainer = document.getElementById("graphContainer");
-const graphCanvas = document.getElementById("graphCanvas");
-/** @type {CanvasRenderingContext2D} */
-const graphC = graphCanvas.getContext("2d");
-function drawGraph() {
-    /** @type {CanvasRenderingContext2D} */
-    const c = graphC;
-    const w = graphCanvas.width = graphContainer.offsetWidth;
-    const h = graphCanvas.height = graphContainer.offsetHeight;
-    
+/** @type {AnalyserNode} */
+let analyser = null;
+/** @type {Uint8Array} */
+let dataArray = null;
+/**
+ * @param {AudioContext} audioContext
+ * @param {AudioBuffer} audioBuffer
+ */
+async function analyzeAudio(audioContext, audioBuffer) {
+  analyser = audioContext.createAnalyser();
+  console.log(analyser);
 
-    graphOverlayCanvas.width = w;
-    graphOverlayCanvas.height = h;
-    tmpCanvas.width = w;
-    tmpCanvas.height = h;
-    
 
-    const channelToanAlyze = [...audioLoaded.getChannelData(0)];
-    const per = 5000;
-    const perDt = audioData.duration/(channelToanAlyze.length/per)*1000;
-    let skippedData = [];
-    for (let i = 0, l = channelToanAlyze.length/per; i < l; i++) {
-        skippedData.push(channelToanAlyze.slice(per*i, per*(i+1)).reduce((a, b) => a = Math.max(a, b), 0));
-    }
-
-    audioData.beatDetectTime = [];
-    audioData.beatDetectRespectively = [];
-    let beatDetectIdx = [];
-    let lastData = 0;
-    let isAlreadyPeak = false;
-    for (let i = 0, l = skippedData.length; i < l; i++) {
-        if (skippedData[i] > lastData) {
-            if (!isAlreadyPeak) {
-                audioData.beatDetectTime.push(Math.floor(perDt*i));
-                audioData.beatDetectRespectively.push(skippedData[i]);
-                beatDetectIdx.push(i);
-                isAlreadyPeak = true;
-            }
-        } else {
-            isAlreadyPeak = false;
-        }
-        lastData = skippedData[i];
-    }
-    
-
-    c.lineWidth = 1;
-    c.lineCap = "round";
-    c.moveTo(0, h);
-    for (let i = 0, l = skippedData.length; i < l; i++) {
-        const peak = skippedData[i];
-        const [x, y] = [w*((i+1)/l), h*(1-peak)];
-        if (beatDetectIdx.includes(i)) {
-            c.fillStyle = "#0f0";
-            c.fillRect(x-2, y-2, 4, 4);
-        }
-        c.lineTo(x, y);
-        c.stroke();
-        c.moveTo(x, y);
-    }
+  const source = audioContext.createBufferSource();
+  source.buffer = audioBuffer;
+  source.connect(analyser);
+  analyser.connect(audioContext.destination);
+  source.start(0);
+  
+  analyser.fftSize = 2048;
+  const bufferLength = analyser.frequencyBinCount;
+  dataArray = new Uint8Array(bufferLength);
+  analyser.getByteTimeDomainData(dataArray);
+  
+  draw();
 }
 
-const graphOverlayCanvas = document.getElementById("graphOverlayCanvas");
-/** @type {CanvasRenderingContext2D} */
-const graphOverlayC = graphOverlayCanvas.getContext("2d");
-const tmpCanvas = document.createElement("canvas");
-const tmpCanvasC = tmpCanvas.getContext("2d");
-setInterval(function() {
-    /** @type {CanvasRenderingContext2D} */
-    const c = graphOverlayC;
+/** @type {HTMLCanvasElement} */
+const canvas = document.getElementById("canvas");
+function draw() {
+  analyser.getByteTimeDomainData(dataArray);
 
-    tmpCanvasC.beginPath();
-    tmpCanvasC.clearRect(0, 0, graphOverlayCanvas.width, graphOverlayCanvas.height);
-    tmpCanvasC.drawImage(graphOverlayCanvas, 0, 0);
+  const WIDTH = canvas.width = innerWidth - 10;
+  const HEIGHT = canvas.height = innerHeight / 5;
 
-    c.beginPath();
-    c.globalAlpha = 0.94;
-    c.clearRect(0, 0, graphOverlayCanvas.width, graphOverlayCanvas.height);
-    c.drawImage(tmpCanvas, 0, 0);
-    c.globalAlpha = 1;
-    if (!isNaN(audioPlayer.duration)) {
-        const [x, y] = [
-            graphOverlayCanvas.width*(audioPlayer.currentTime/audioPlayer.duration),
-            graphOverlayCanvas.height
-        ];
+  const ctx = canvas.getContext("2d");
 
-        c.strokeStyle = "#f00";
-        c.moveTo(x, 0);
-        c.lineTo(x, y);
-        c.stroke();
-    }
-}, 30);
+  ctx.fillStyle = "#222";
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+  const bufferLength = dataArray.length;
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#fff";
+  ctx.beginPath();
+  ctx.moveTo(0, HEIGHT/2);
+  for (let i = 0; i < bufferLength; i++) {
+    ctx.lineTo(
+      i * WIDTH/bufferLength,
+      dataArray[i] * HEIGHT/256
+    );
+  }
+  ctx.lineTo(0, HEIGHT/2);
+  ctx.stroke();
+  console.log(Math.min(...dataArray));
+
+  requestAnimationFrame(draw);
+}

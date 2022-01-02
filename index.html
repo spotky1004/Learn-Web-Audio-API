@@ -14,17 +14,12 @@
     <form>
         <fieldset>
             <legend>Input</legend>
-            <input id="audio_file" type="file" accept="audio/*" onchange="audioAccepted(this.files[0], this)" />
+            <input id="audio_file" type="file" accept="audio/*" onchange="audioAccepted(this.files[0])" />
             <audio id="audio_player" controls/>
         </fieldset>
     </form>
-    <div id="graphContainer" style="padding: 0;">
-        <canvas id="graphOverlayCanvas" style="margin: 0; padding: 0; position: absolute;">
+    <canvas id="canvas" style="margin: 0; padding: 0;">
 
-        </canvas>
-        <canvas id="graphCanvas" style="margin: 0; padding: 0;">
-
-        </canvas>
-    </div>
+    </canvas>
 </body>
 </html>
